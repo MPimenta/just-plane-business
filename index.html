@@ -639,6 +639,7 @@ if(S.clock.running&&elapsed()>=dur(S.round)){S.clock.running=false;S.clock.elaps
 document.addEventListener("input",e=>{if(e.target.id==="vol"&&SND()){SND().unlock();SND().setVolume(e.target.value)}});
 route();
 if(window.JPBCloud)cloudInit();
+$("#dial").title="Show the big clock";$("#dial").addEventListener("click",()=>{peek=false;updateBig(elapsed(),dur(S.round))});
 })();
 </script>
 
