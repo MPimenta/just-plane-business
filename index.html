@@ -122,6 +122,43 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);background:var
 .stop .btn{color:#FBF3E1}
 @media (max-width:640px){.dial{font-size:2rem}.brand img{height:44px}.rcard{grid-template-columns:1fr}.rcard .rn{text-align:left}}
 @media (prefers-reduced-motion:no-preference){.stop h1{animation:pulse 1s ease-in-out 3}@keyframes pulse{50%{transform:scale(1.05)}}}
+
+/* Session pill, sound button */
+.sesspill{display:inline-flex;align-items:center;gap:6px;border:2px solid var(--mustard);color:var(--mustard);background:transparent;border-radius:999px;padding:4px 12px;font-weight:700;letter-spacing:.08em;cursor:pointer;font-size:.8rem}
+.sesspill .dot{width:8px;height:8px;border-radius:50%;background:var(--mustard)}
+.sesspill.closed{opacity:.7}
+.dial{cursor:pointer}
+
+/* Full-screen round clock */
+.bigclock{position:fixed;inset:0;z-index:15;display:grid;grid-template-rows:auto 1fr auto auto;justify-items:center;align-items:center;gap:12px;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:radial-gradient(circle at 50% 45%,#1E5E66 0%,#163F45 55%,#0B2023 100%);color:#F6EBD3;text-align:center;overflow:hidden}
+.bigclock .bc-top{display:grid;gap:4px}
+.bigclock .bc-round{font-family:var(--font-slab);letter-spacing:.2em;text-transform:uppercase;font-size:clamp(1rem,2.4vw,1.6rem);color:#F6EBD3;opacity:.85}
+.bigclock .bc-name{font-family:var(--font-script);font-size:clamp(2.2rem,6vw,4.6rem);line-height:1;color:#DFA53A}
+.bigclock .bc-time{font-family:var(--font-slab);font-size:clamp(7rem,30vw,26rem);line-height:.9;letter-spacing:.02em;text-shadow:0 .04em 0 #0B2023}
+.bigclock .bc-bar{width:min(900px,90vw);height:14px;border-radius:999px;background:rgba(246,235,211,.18);overflow:hidden}
+.bigclock .bc-bar span{display:block;height:100%;width:0;background:#C23A2A;border-radius:999px;transition:width .25s linear}
+.bigclock .bc-left{font-family:var(--font-card);font-size:clamp(1.1rem,2.6vw,1.8rem);letter-spacing:.06em}
+.bigclock .bc-tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;opacity:.55;transition:opacity .2s}
+.bigclock .bc-tools:hover,.bigclock .bc-tools:focus-within{opacity:1}
+.bigclock .btn{color:#F6EBD3}
+.bigclock.final{background:radial-gradient(circle at 50% 45%,#D9533F 0%,#C23A2A 55%,#8E2418 100%)}
+.bigclock.final .bc-name{color:#F6EBD3}
+.bigclock.final .bc-bar span{background:#F6EBD3}
+.bigclock.paused .bc-time{opacity:.55}
+@media (prefers-reduced-motion:no-preference){.bigclock.final .bc-time{animation:beat 1s ease-in-out infinite}@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.06)}}}
+
+/* Join screen */
+.joinov{position:fixed;inset:0;z-index:25;display:grid;place-items:center;background:color-mix(in srgb,#0B2023 88%,transparent);padding:16px;overflow:auto}
+.joinbox{background:#FBF3E1;color:#2B221D;border-radius:14px;border:4px solid #C23A2A;padding:24px;display:grid;gap:14px;justify-items:center;text-align:center;max-width:min(720px,100%)}
+.joinbox .jl{font-family:var(--font-script);font-size:2.4rem;line-height:1;color:#C23A2A}
+.joinbox #qr svg{width:min(320px,70vw);height:auto;display:block}
+.joinbox .jcode{font-family:var(--font-slab);font-size:clamp(3rem,10vw,5.5rem);letter-spacing:.25em;line-height:1;color:#1E5E66;padding-left:.25em}
+.joinbox .jurl{font-family:var(--font-card);font-size:1rem;word-break:break-all}
+.joinbox .chip{border-color:#1E5E66;color:#2B221D}
+.joinbox .chip[aria-pressed="true"]{background:#1E5E66;color:#F6EBD3}
+.joinbox .btn{color:#2B221D}
+.range{width:12em}
 </style>
 </head>
 <body>
@@ -134,10 +171,12 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);background:var
       <div><div class="sub">Performance Dashboard</div><div class="co">Flight Works Ltd. · Industrial Performance Office</div></div>
     </div>
     <div class="clock">
+      <button class="sesspill" id="sessPill" type="button" hidden></button>
       <div class="roundsel" id="roundsel" role="group" aria-label="Current round"></div>
       <div class="dial num" id="dial" aria-live="off">0:00<small>of 4:00</small></div>
       <button class="btn solid" id="startBtn" type="button">Start</button>
       <button class="btn" id="resetBtn" type="button">Reset</button>
+      <button class="btn" id="soundBtn" type="button" aria-pressed="true">Sound on</button>
     </div>
   </div>
 </header>
@@ -146,6 +185,25 @@ textarea{width:100%;min-height:110px;border:1px solid var(--line);background:var
 <div class="wrap"><main id="main"></main></div>
 <div class="stop" id="stop" hidden><div><h1>STOP EVERYTHING</h1><p>Hands off the planes. Time Keepers, to the dashboard.</p><button class="btn" id="stopOk" type="button">Enter the times</button></div></div>
 
+<div class="bigclock" id="big" hidden aria-live="off">
+  <div class="bc-top"><div class="bc-round" id="bcRound"></div><div class="bc-name" id="bcName"></div></div>
+  <div class="bc-time num" id="bcTime">0:00</div>
+  <div class="bc-bar"><span id="bcBar"></span></div>
+  <div class="bc-left" id="bcLeft"></div>
+  <div class="bc-tools"><button class="btn" id="bcPause" type="button">Pause</button><button class="btn" id="bcPeek" type="button">Show the dashboard</button><button class="btn" id="bcSound" type="button">Sound on</button><button class="btn" id="bcFull" type="button">Full screen</button></div>
+</div>
+<div class="joinov" id="joinov" hidden><div class="joinbox" role="dialog" aria-label="Join as Time Keeper">
+  <div class="jl">Time Keepers, report for duty</div>
+  <div id="qr"></div>
+  <div>Scan the code, or open the link and type:</div>
+  <div class="jcode" id="jcode"></div>
+  <div class="jurl" id="jurl"></div>
+  <div class="chips" id="jkeepers"></div>
+  <button class="btn" id="joinClose" type="button">Close</button>
+</div></div>
+<script src="firebase-config.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="js/sound.js"></script>
 <script>
 (()=>{
 "use strict";
@@ -171,7 +229,84 @@ function blank(){return{example:false,factories:["Alpha","Bravo","Charlie","Delt
 function cell(s,f,r){const k=f+"|"+r;return s.data[k]||(s.data[k]={planes:[],solo:null,audit:null,forecast:null})}
 let S=load();
 function load(){try{const t=localStorage.getItem(KEY);if(t){const o=JSON.parse(t);return Object.assign(blank(),o)}}catch(e){}return example()}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){if(CLOUD.code){pushCloud();return}try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+
+/* ---------- online sessions (Firebase, js/cloud.js) ---------- */
+const CLOUD={ready:false,user:null,admin:null,code:null,session:null,sessions:null,keepers:[],unsub:[],msg:"",busy:false};
+const CKEY=KEY+"-online";
+const SFIELDS=["factories","durations","orders","expediteAt","vocab","round","clock"];
+let LOCAL=null,lastSess="",lastPlanes={},lastFR={};
+const C=()=>window.JPBCloud;
+const nowMs=()=>CLOUD.code&&C()?C().now():Date.now();
+const pickSess=o=>{const r={};SFIELDS.forEach(k=>r[k]=o[k]);return r};
+const numOrNull=v=>v==null||v===""?null:(typeof v==="number"?v:(isNaN(+v)?null:+v));
+const planeDoc=(p,f,r)=>({f,rd:r,n:p.n==null||p.n===""?null:(isNaN(+p.n)?String(p.n):+p.n),s:p.s==null?null:p.s,d:p.d==null?null:p.d,rej:+p.r||0,x:!!p.x});
+const frDoc=c=>({solo:c.solo??null,audit:c.audit??null,forecast:c.forecast??null});
+const EMPTYFR=JSON.stringify({solo:null,audit:null,forecast:null});
+function cloudErr(e){console.warn(e);CLOUD.msg="Couldn't save to the online session: "+(e&&e.code||e&&e.message||e)+". Check the connection.";if(view==="setup")render()}
+function pushCloud(){
+  const api=C(),code=CLOUD.code;if(!api||!code)return;
+  const ses=pickSess(S),js=JSON.stringify(ses);
+  if(js!==lastSess){lastSess=js;api.updateSession(code,JSON.parse(js)).catch(cloudErr)}
+  const seen=new Set();
+  for(const k in S.data){const [f,r]=k.split("|").map(Number),c=S.data[k];
+    c.planes.forEach(p=>{if(!p.id)p.id=api.newPlaneId(code);seen.add(p.id);const d=planeDoc(p,f,r),j=JSON.stringify(d);if(lastPlanes[p.id]!==j){lastPlanes[p.id]=j;api.setPlane(code,p.id,d).catch(cloudErr)}});
+    const jf=JSON.stringify(frDoc(c));if((lastFR[k]||EMPTYFR)!==jf){lastFR[k]=jf;api.setFactoryRound(code,f,r,frDoc(c)).catch(cloudErr)}}
+  for(const id in lastPlanes)if(!seen.has(id)){delete lastPlanes[id];api.deletePlane(code,id).catch(cloudErr)}
+}
+let renderPending=false;
+function softRender(){const a=document.activeElement;if(a&&a.closest&&a.closest("#main")&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)){renderPending=true;return}render()}
+document.addEventListener("focusout",()=>{if(renderPending)setTimeout(()=>{const a=document.activeElement;if(renderPending&&!(a&&a.closest&&a.closest("#main")&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))){renderPending=false;render()}},0)});
+function stopWatching(){CLOUD.unsub.forEach(u=>{try{u()}catch(e){}});CLOUD.unsub=[]}
+function openSession(code){
+  const api=C();if(!api)return;
+  stopWatching();
+  if(!CLOUD.code)LOCAL=S;
+  const keep={entryFactory:S.entryFactory,selFactory:S.selFactory,cmpA:S.cmpA,cmpB:S.cmpB};
+  CLOUD.code=code;CLOUD.session=null;CLOUD.keepers=[];lastSess="";lastPlanes={};lastFR={};
+  S=Object.assign(blank(),keep,{example:false,data:{}});
+  try{localStorage.setItem(CKEY,code)}catch(e){}
+  CLOUD.unsub.push(api.watchSession(code,d=>{
+    if(!d){CLOUD.msg="That session no longer exists.";leaveSession();return}
+    const roundChanged=d.round!==S.round;
+    CLOUD.session=d;SFIELDS.forEach(k=>{if(d[k]!==undefined)S[k]=JSON.parse(JSON.stringify(d[k]))});
+    if(roundChanged)S.entryRound=S.round;
+    lastSess=JSON.stringify(pickSess(S));softRender()},cloudErr));
+  CLOUD.unsub.push(api.watchPlanes(code,null,list=>{
+    for(const k in S.data)S.data[k].planes=[];
+    lastPlanes={};
+    list.forEach(d=>{const p={id:d.id,n:d.n,s:d.s,d:d.d,r:d.rej||0,x:!!d.x};cell(S,d.f,d.rd).planes.push(p);lastPlanes[d.id]=JSON.stringify(planeDoc(p,d.f,d.rd))});
+    for(const k in S.data)S.data[k].planes.sort((a,b)=>((+a.n||1e9)-(+b.n||1e9))||((a.s??1e9)-(b.s??1e9)));
+    softRender()},cloudErr));
+  CLOUD.unsub.push(api.watchFactoryRounds(code,list=>{
+    list.forEach(d=>{const c=cell(S,d.f,d.r);c.solo=d.solo??null;c.audit=d.audit??null;c.forecast=d.forecast??null;lastFR[d.f+"|"+d.r]=JSON.stringify(frDoc(c))});softRender()},cloudErr));
+  CLOUD.unsub.push(api.watchKeepers(code,list=>{CLOUD.keepers=list;drawJoin()},()=>{}));
+  render();
+}
+function leaveSession(){
+  stopWatching();CLOUD.code=null;CLOUD.session=null;CLOUD.keepers=[];
+  try{localStorage.removeItem(CKEY)}catch(e){}
+  S=LOCAL||load();LOCAL=null;$("#joinov").hidden=true;render();
+}
+async function refreshSessions(){const api=C();if(!api||!CLOUD.admin)return;try{CLOUD.sessions=await api.mySessions()}catch(e){cloudErr(e)}if(view==="setup")render()}
+function cloudInit(){
+  const api=C();if(!api||CLOUD.ready)return;CLOUD.ready=true;
+  if(!api.available){if(view==="setup")render();return}
+  api.onUser(async u=>{
+    CLOUD.user=u;CLOUD.admin=null;
+    if(u&&!u.isAnonymous){CLOUD.admin=await api.isAdmin();if(CLOUD.admin){refreshSessions();let code=null;try{code=localStorage.getItem(CKEY)}catch(e){}if(code&&!CLOUD.code)openSession(code)}}
+    else if(CLOUD.code)leaveSession();
+    drawHeader();if(view==="setup")render();
+  });
+}
+window.addEventListener("jpb-cloud-ready",cloudInit);
+function keeperUrl(){const u=new URL("keeper.html",location.href);u.search="";u.hash="";u.searchParams.set("c",CLOUD.code);const q=new URLSearchParams(location.search);if(q.has("emu"))u.searchParams.set("emu",q.get("emu"));return u.toString()}
+function showJoin(){if(!CLOUD.code)return;const url=keeperUrl();
+  try{const q=qrcode(0,"M");q.addData(url);q.make();$("#qr").innerHTML=q.createSvgTag(8,2)}catch(e){$("#qr").innerHTML=""}
+  $("#jcode").textContent=CLOUD.code;$("#jurl").textContent=url;$("#joinov").hidden=false;drawJoin()}
+function drawJoin(){const el=$("#jkeepers");if(!el)return;
+  el.innerHTML=S.factories.map((f,i)=>{const n=CLOUD.keepers.filter(k=>String(k.f)===String(i)).length;return`<span class="chip" aria-pressed="${n>0}">${esc(f)} · ${n?n+" phone"+(n>1?"s":"")+" ready":"waiting"}</span>`}).join("")}
+
 
 /* example data: seeded generator with a slow Station 3 */
 function example(){
@@ -307,7 +442,7 @@ function vTimekeeper(){
   const extra=r===0?`<label>Solo flight (m:ss or seconds)<input id="solo" value="${c.solo==null?"":mmss(c.solo)}" placeholder="0:45"></label>`
    :(r===1||r===2)?`<label>Audit: failed out of 5 checked<input id="audit" type="number" min="0" max="5" value="${c.audit??""}" placeholder="0"></label>`
    :r===5?`<label>Forecast (accepted planes)<input id="forecast" type="number" min="0" value="${c.forecast??""}" placeholder="12"></label>`:"";
-  return exampleBanner()+`<div class="row" style="justify-content:space-between"><h2>Time Keeper</h2><span class="note">Pick your factory, then copy your sheet. Times are from the big clock.</span></div>
+  return exampleBanner()+`<div class="row" style="justify-content:space-between"><h2>Time Keeper</h2><span class="note">${CLOUD.code?"Time Keepers enter times on their phones. Use this page to check or fix them.":"Pick your factory, then copy your sheet. Times are from the big clock."}</span></div>
   <div class="panel" style="display:grid;gap:12px"><div class="chips" role="group" aria-label="Factory">${S.factories.map((f,i)=>`<button class="chip" type="button" data-ef="${i}" aria-pressed="${i===fi}">${esc(f)}</button>`).join("")}</div>
   <div class="fields"><label>Round<select id="eround">${ROUNDS.map(R=>`<option value="${R.n}" ${R.n===r?"selected":""}>Round ${R.n} · ${esc(R.name)}</option>`).join("")}</select></label>${extra}</div></div>
   ${r===0?"":`<div class="timecard"><div class="tc-head"><span>Time card · ${esc(S.factories[fi])} · Round ${r}</span><span>${c.planes.length} planes · round ${mmss(D)}</span></div>
@@ -336,23 +471,70 @@ function vRounds(){
   <h2>Quality criteria · CEO's Original Prototype™</h2><div class="criteria">${CRITERIA.map(c=>`<div class="crit"><strong>${esc(c[0])}</strong><br>${esc(c[1])}</div>`).join("")}</div>`;
 }
 
+function vOnline(){
+  const api=C(),msg=CLOUD.msg?`<p class="note" role="status" style="color:var(--red)">${esc(CLOUD.msg)}</p>`:"";
+  const head=`<h3>Online session</h3><p class="note">Time Keepers enter times on their own phones, and every screen updates live. Sessions are kept for later.</p>`;
+  if(!api)return`<div class="panel" style="display:grid;gap:10px">${head}<p class="note">Loading…</p></div>`;
+  if(!api.available)return`<div class="panel" style="display:grid;gap:10px">${head}<p class="note">Online sessions aren't set up yet (the Firebase settings are missing). Everything works on this computer only.</p></div>`;
+  const u=CLOUD.user;
+  if(!u||u.isAnonymous)return`<div class="panel" style="display:grid;gap:10px">${head}${msg}<div class="row"><button class="btn solid" type="button" data-act="signin">Sign in with Google</button></div></div>`;
+  const who=`<span class="note">Signed in as ${esc(u.email||u.displayName||"facilitator")}</span><button class="btn" type="button" data-act="signout">Sign out</button>`;
+  if(CLOUD.admin===null)return`<div class="panel" style="display:grid;gap:10px">${head}<p class="note">Checking your account…</p></div>`;
+  if(!CLOUD.admin)return`<div class="panel" style="display:grid;gap:10px">${head}${msg}<p>This Google account isn't on the facilitator list yet. In the Firebase console, add a document to the <code>admins</code> collection with this ID, then reload:</p><p><code style="user-select:all">${esc(u.uid)}</code></p><div class="row">${who}</div></div>`;
+  const cur=CLOUD.code?(()=>{const st=CLOUD.session&&CLOUD.session.status==="closed";return`<div class="banner"><span><span class="pill">${st?"Closed":"Live"}</span> <strong>${esc(CLOUD.session?CLOUD.session.name:"")}</strong> · join code <strong>${esc(CLOUD.code)}</strong></span><span class="row"><button class="btn" type="button" data-act="join">Show the join screen</button><button class="btn" type="button" data-act="${st?"reopen":"closesess"}">${st?"Reopen":"Close the session"}</button><button class="btn" type="button" data-act="leave">Back to this computer only</button></span></div>`})():"";
+  const list=CLOUD.sessions==null?`<p class="note">Loading your sessions…</p>`:CLOUD.sessions.length?`<div class="tablewrap"><table><thead><tr><th>Session</th><th>Date</th><th>Code</th><th>Status</th><th></th></tr></thead><tbody>${CLOUD.sessions.map(x=>`<tr><td style="font-family:var(--font-body)">${esc(x.name||"")}</td><td>${x.created?new Date(x.created).toLocaleDateString():"–"}</td><td>${esc(x.code)}</td><td>${x.status==="closed"?"Closed":"Live"}</td><td><span class="row" style="justify-content:flex-end"><button class="btn" type="button" data-open="${esc(x.code)}" ${x.code===CLOUD.code?"disabled":""}>Open</button><button class="btn" type="button" data-export="${esc(x.code)}">Copy data</button></span></td></tr>`).join("")}</tbody></table></div>`:`<p class="note">No online sessions yet.</p>`;
+  return`<div class="panel" style="display:grid;gap:12px">${head}${msg}${cur}
+  <div class="fields" style="align-items:end"><label>New session name<input id="sessName" style="width:18em" placeholder="Kanban training, ${new Date().toLocaleDateString()}"></label><button class="btn solid" type="button" data-act="newsess" ${CLOUD.busy?"disabled":""}>Start a new online session</button></div>
+  <p class="note" style="margin:0">A new session uses the factories and round lengths below.</p>
+  <h3 style="margin-top:6px">Your sessions</h3>${list}<div class="row"><button class="btn" type="button" data-act="refresh">Refresh</button>${who}</div></div>`;
+}
+function vSound(){const snd=SND();if(!snd)return"";
+  return`<div class="panel" style="display:grid;gap:12px"><h3>Sound</h3><p class="note">Music while the round runs, a ticking clock for the last ten seconds, a factory horn at STOP. Everything plays from this computer, so connect the room's speakers.</p>
+  <div class="fields" style="align-items:end"><label>Volume<input class="range" id="vol" type="range" min="0" max="1" step="0.05" value="${snd.volume}"></label><label style="display:flex;gap:8px;align-items:center;font-size:.9rem;color:var(--ink)"><input id="musicOn" type="checkbox" ${snd.musicOn?"checked":""}> Elevator music during rounds</label></div>
+  <div class="row"><button class="btn" type="button" data-act="tmusic">${snd.playing&&!S.clock.running?"Stop the music":"Try the music"}</button><button class="btn" type="button" data-act="ttick">Try the tick</button><button class="btn" type="button" data-act="thorn">Try the horn</button></div></div>`}
 function vSetup(){
-  return`<h2>Setup</h2>
+  return`<h2>Setup</h2>${vOnline()}
   <div class="panel" style="display:grid;gap:12px"><h3>Factories</h3><div class="fields">${S.factories.map((f,i)=>`<label>Factory ${i+1}<input id="fac-${i}" data-fac="${i}" value="${esc(f)}"></label>`).join("")}</div>
   <div class="row"><button class="btn" type="button" data-act="addfac" ${S.factories.length>=8?"disabled":""}>Add a factory</button><button class="btn" type="button" data-act="delfac" ${S.factories.length<=1?"disabled":""}>Remove the last factory</button></div></div>
   <div class="panel" style="display:grid;gap:12px"><h3>Round length</h3><div class="fields">${ROUNDS.map(R=>`<label>Round ${R.n}<input id="dur-${R.n}" data-dur="${R.n}" value="${mmss(dur(R.n))}"></label>`).join("")}</div>
   <div class="fields"><label>Orders in the book<input id="orders" type="number" min="10" value="${S.orders}"></label><label>Chairman's jet arrives at<input id="expAt" value="${mmss(S.expediteAt)}"></label>
   <label>Kanban words<select id="vocab"><option value="auto" ${S.vocab==="auto"?"selected":""}>From Round 4 (the reveal)</option><option value="on" ${S.vocab==="on"?"selected":""}>Always</option><option value="off" ${S.vocab==="off"?"selected":""}>Never</option></select></label></div></div>
-  <div class="panel" style="display:grid;gap:12px"><h3>Session data</h3><p class="note">Data is kept in this browser only. Copy it out to keep a record or move it to another computer.</p>
+  ${vSound()}
+  ${CLOUD.code?"":`<div class="panel" style="display:grid;gap:12px"><h3>Session data</h3><p class="note">Data is kept in this browser only. Copy it out to keep a record or move it to another computer.</p>
   <div class="row"><button class="btn" type="button" data-act="copy">Copy session data</button><button class="btn" type="button" data-act="loadex">Load example data</button>${confirmClear?`<button class="btn solid" type="button" data-act="clearyes">Yes, clear everything</button><button class="btn" type="button" data-act="clearno">Keep it</button>`:`<button class="btn" type="button" data-act="clear">Clear all data</button>`}</div>
-  <textarea id="importBox" placeholder="Paste session data here to load it" aria-label="Session data to import"></textarea><div class="row"><button class="btn" type="button" data-act="import">Load pasted data</button><span class="note" id="msg" role="status"></span></div></div>`;
+  <textarea id="importBox" placeholder="Paste session data here to load it" aria-label="Session data to import"></textarea><div class="row"><button class="btn" type="button" data-act="import">Load pasted data</button><span class="note" id="msg" role="status"></span></div></div>`}`;
 }
 
 /* ---------- clock ---------- */
-function elapsed(){const c=S.clock;return Math.min(dur(S.round),c.elapsed+(c.running?(Date.now()-c.startedAt)/1000:0))}
-let stopShown=false;
+function elapsed(){const c=S.clock;return Math.max(0,Math.min(dur(S.round),c.elapsed+(c.running?(nowMs()-c.startedAt)/1000:0)))}
+let stopShown=false,peek=false,wasRunning=null,lastSec=-1;
+const SND=()=>window.JPBSound;
+function showStop(){$("#stop").hidden=false;stopShown=true;$("#stopOk").textContent=CLOUD.code?"Show the scoreboard":"Enter the times";
+  $("#stop p").textContent=CLOUD.code?"Hands off the planes. Time Keepers: check your phone, fix any mistakes.":"Hands off the planes. Time Keepers, to the dashboard.";}
+function updateBig(e,D){
+  const big=$("#big"),run=S.clock.running,paused=!run&&e>0&&e<D;
+  const show=(run||paused)&&!peek;big.hidden=!show;if(!show)return;
+  const left=Math.max(0,D-e),fin=run&&left<=10;
+  big.classList.toggle("final",fin);big.classList.toggle("paused",paused);
+  $("#bcRound").textContent=`Round ${S.round}`;$("#bcName").textContent=ROUNDS[S.round]?ROUNDS[S.round].name:"";
+  $("#bcTime").textContent=fin?String(Math.ceil(left)):mmss(Math.floor(e));
+  $("#bcBar").style.width=(Math.min(1,e/D)*100).toFixed(2)+"%";
+  $("#bcLeft").textContent=paused?"Paused":fin?"seconds to STOP":`${mmss(Math.ceil(left))} to go`;
+  $("#bcPause").textContent=run?"Pause":"Resume";
+}
 function tick(){const e=elapsed(),D=dur(S.round);$("#dial").innerHTML=`${mmss(Math.floor(e))}<small>of ${mmss(D)}</small>`;
-  if(S.clock.running&&e>=D){S.clock.running=false;S.clock.elapsed=D;save();$("#stop").hidden=false;stopShown=true;drawHeader()}
+  if(S.clock.running&&e>=D){S.clock.running=false;S.clock.elapsed=D;save();drawHeader()}
+  const run=S.clock.running,snd=SND();
+  if(wasRunning!==null&&run!==wasRunning){
+    if(run){peek=false;if(snd){snd.chime();snd.music(true)}}
+    else{if(snd)snd.music(false);if(elapsed()>=D-0.01){if(snd)snd.horn();showStop()}}
+    drawHeader();
+  }
+  wasRunning=run;
+  const left=D-e;
+  if(run&&left<=10&&left>0){const sec=Math.ceil(left);if(sec!==lastSec){lastSec=sec;if(snd){snd.duck(true);snd.tick(sec%2===0)}}}
+  else if(lastSec!==-1){lastSec=-1;if(snd)snd.duck(false)}
+  updateBig(e,D);
   const sb=$("[data-act=stampstart]");if(sb)sb.textContent=`Started now (${mmss(e)})`;}
 setInterval(tick,250);
 
@@ -361,6 +543,8 @@ let view="scoreboard",confirmClear=false;
 function drawHeader(){
   $("#roundsel").innerHTML=ROUNDS.map(R=>`<button type="button" data-round="${R.n}" aria-pressed="${R.n===S.round}" title="Round ${R.n}: ${esc(R.name)}">${R.n}</button>`).join("");
   $("#startBtn").textContent=S.clock.running?"Pause":(S.clock.elapsed>0&&S.clock.elapsed<dur(S.round)?"Resume":"Start");
+  const sp=$("#sessPill");if(CLOUD.code){sp.hidden=false;const st=CLOUD.session&&CLOUD.session.status==="closed";sp.classList.toggle("closed",st);sp.innerHTML=`<span class="dot"></span>${st?"Closed":"Live"} · ${esc(CLOUD.code)}`;sp.title="Show the join screen for Time Keepers"}else sp.hidden=true;
+  const snd=SND(),lab=snd&&!snd.muted?"Sound on":"Sound off";$("#soundBtn").textContent=lab;$("#soundBtn").setAttribute("aria-pressed",String(!!(snd&&!snd.muted)));$("#bcSound").textContent=lab;
   $("#tabs").innerHTML=TABS.map(t=>`<a href="#${t[0]}" ${t[0]===view?'aria-current="page"':""}>${t[1]}</a>`).join("");
 }
 function render(keepFocus){
@@ -378,15 +562,37 @@ function setRound(n){if(S.clock.running)return;S.round=n;S.entryRound=n;S.clock=
 document.addEventListener("click",e=>{
   const t=e.target.closest("button");if(!t)return;const d=t.dataset;
   if(d.round!=null){setRound(+d.round);return}
-  if(t.id==="startBtn"){const c=S.clock;if(c.running){c.elapsed=elapsed();c.running=false}else{if(c.elapsed>=dur(S.round))c.elapsed=0;c.startedAt=Date.now();c.running=true;S.entryRound=S.round}save();render();return}
+  if(t.id==="startBtn"){const c=S.clock;if(c.running){c.elapsed=elapsed();c.running=false}else{if(c.elapsed>=dur(S.round))c.elapsed=0;c.startedAt=nowMs();c.running=true;S.entryRound=S.round;peek=false;SND()&&SND().unlock()}save();render();return}
   if(t.id==="resetBtn"){S.clock={running:false,startedAt:0,elapsed:0};save();render();return}
-  if(t.id==="stopOk"){$("#stop").hidden=true;location.hash="timekeeper";if(view==="timekeeper")render();return}
+  if(t.id==="stopOk"){$("#stop").hidden=true;const to=CLOUD.code?"scoreboard":"timekeeper";location.hash=to;if(view===to)render();return}
+  if(t.id==="soundBtn"||t.id==="bcSound"){const snd=SND();if(snd){snd.unlock();snd.setMuted(!snd.muted)}drawHeader();return}
+  if(t.id==="bcPeek"){peek=true;updateBig(elapsed(),dur(S.round));return}
+  if(t.id==="dial"||t.closest("#dial")){peek=false;updateBig(elapsed(),dur(S.round));return}
+  if(t.id==="bcPause"){$("#startBtn").click();return}
+  if(t.id==="bcFull"){const el=document.documentElement;if(document.fullscreenElement)document.exitFullscreen&&document.exitFullscreen();else el.requestFullscreen&&el.requestFullscreen().catch(()=>{});return}
+  if(t.id==="sessPill"){showJoin();return}
+  if(t.id==="joinClose"){$("#joinov").hidden=true;return}
+  if(d.open!=null){openSession(d.open);return}
+  if(d.export!=null){const api=C();api.exportSession(d.export).then(o=>{const txt=JSON.stringify(o);return navigator.clipboard.writeText(txt)}).then(()=>{CLOUD.msg="";alert("Session data copied.")},e=>cloudErr(e));return}
   if(d.sel!=null){S.selFactory=+d.sel;save();render();return}
   if(d.ef!=null){S.entryFactory=+d.ef;save();render();return}
   if(d.del!=null){cell(S,S.entryFactory,S.entryRound).planes.splice(+d.del,1);S.example=false;save();render();return}
   if(d.stampdone!=null){const p=cell(S,S.entryFactory,S.entryRound).planes[+d.stampdone];p.d=Math.round(elapsed());S.example=false;save();render();return}
   const c=()=>cell(S,S.entryFactory,S.entryRound);
   switch(d.act){
+    case"signin":{CLOUD.msg="";C().signInFacilitator().catch(e=>{CLOUD.msg="Sign-in didn't work: "+(e.code||e.message);render()});break}
+    case"signout":{leaveSession();C().signOut();break}
+    case"newsess":{const api=C();const name=($("#sessName")&&$("#sessName").value.trim())||("Kanban training, "+new Date().toLocaleDateString());CLOUD.busy=true;render();
+      const settings={factories:S.factories.slice(),durations:S.durations.slice(),orders:S.orders,expediteAt:S.expediteAt,vocab:S.vocab};
+      api.createSession(name,settings).then(code=>{CLOUD.busy=false;CLOUD.msg="";openSession(code);refreshSessions();showJoin()},e=>{CLOUD.busy=false;cloudErr(e)});break}
+    case"refresh":refreshSessions();break;
+    case"join":showJoin();break;
+    case"leave":leaveSession();break;
+    case"closesess":C().updateSession(CLOUD.code,{status:"closed"}).then(refreshSessions,cloudErr);break;
+    case"reopen":C().updateSession(CLOUD.code,{status:"live"}).then(refreshSessions,cloudErr);break;
+    case"tmusic":{const snd=SND();snd.unlock();snd.music(!snd.playing);setTimeout(render,50);break}
+    case"ttick":{const snd=SND();snd.unlock();snd.tick(true);setTimeout(()=>snd.tick(false),1000);break}
+    case"thorn":{const snd=SND();snd.unlock();snd.horn();break}
     case"addrow":{const ps=c().planes;const nx=ps.reduce((m,p)=>Math.max(m,+p.n||0),0)+1;ps.push({n:nx,s:null,d:null,r:0,x:false});S.example=false;save();render();const el=document.getElementById("ps-"+(ps.length-1));el&&el.focus();break}
     case"stampstart":{const ps=c().planes;const nx=ps.reduce((m,p)=>Math.max(m,+p.n||0),0)+1;ps.push({n:nx,s:Math.round(elapsed()),d:null,r:0,x:false});S.example=false;save();render();break}
     case"paste":{const lines=($("#paste").value||"").split(/\n/).map(l=>l.trim()).filter(Boolean);const out=[];
@@ -420,6 +626,8 @@ document.addEventListener("change",e=>{
   if(t.id==="orders"){S.orders=Math.max(10,+t.value||40);save();return}
   if(t.id==="expAt"){const v=parseT(t.value);if(v!=null&&!isNaN(v))S.expediteAt=v;save();return}
   if(t.id==="vocab"){S.vocab=t.value;save();render();return}
+  if(t.id==="vol"){SND().setVolume(t.value);return}
+  if(t.id==="musicOn"){SND().setMusic(t.checked);return}
 });
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter"&&e.target.matches(".timecard input")){e.preventDefault();const t=e.target;t.dispatchEvent(new Event("change",{bubbles:true}));
@@ -428,9 +636,12 @@ document.addEventListener("keydown",e=>{
     else{const el=document.getElementById({n:"ps",s:"pd"}[k]+"-"+i);el&&el.focus()}}
 });
 if(S.clock.running&&elapsed()>=dur(S.round)){S.clock.running=false;S.clock.elapsed=dur(S.round)}
+document.addEventListener("input",e=>{if(e.target.id==="vol"&&SND()){SND().unlock();SND().setVolume(e.target.value)}});
 route();
+if(window.JPBCloud)cloudInit();
 })();
 </script>
 
+<script type="module" src="js/cloud.js"></script>
 </body>
 </html>

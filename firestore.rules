@@ -1,0 +1,59 @@
+rules_version = '2';
+// Flight Works Performance Dashboard: who may read and write what.
+// Facilitators: Google accounts listed in the admins collection (one document per user ID).
+// Time Keepers: anonymous sign-in plus the 4-letter session code; they can only write
+// their own factory's planes, in the current round, while the session is live.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && exists(/databases/$(db)/documents/admins/$(request.auth.uid)); }
+    function sess(code) { return get(/databases/$(db)/documents/sessions/$(code)).data; }
+    function isOwner(code) { return isAdmin() && sess(code).owner == request.auth.uid; }
+    function keeperPath(code) { return /databases/$(db)/documents/sessions/$(code)/keepers/$(request.auth.uid); }
+    function isKeeper(code) { return signedIn() && exists(keeperPath(code)); }
+    function keeperF(code) { return get(keeperPath(code)).data.f; }
+    function live(code) { return sess(code).status == 'live'; }
+    // A plane document belongs to this Time Keeper's factory and to the round being played.
+    function keeperPlane(code, d) {
+      return isKeeper(code) && live(code) && d.f is int && string(d.f) == keeperF(code) && d.rd == sess(code).round;
+    }
+    // factoryRounds/{f_r}: solo flight, audit, forecast.
+    function keeperFR(code, id) {
+      let parts = id.split('_');
+      let s = sess(code);
+      return isKeeper(code) && s.status == 'live' && parts.size() == 2 && parts[0] == keeperF(code)
+        && (int(parts[1]) == s.round
+            || (s.round == 3 && (parts[1] == '1' || parts[1] == '2')
+                && request.resource.data.diff(resource == null ? {} : resource.data).affectedKeys().hasOnly(['audit', 'f', 'r'])));
+    }
+
+    match /admins/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+    }
+    match /pings/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+    match /sessions/{code} {
+      allow get: if signedIn();
+      allow list: if isAdmin() && resource.data.owner == request.auth.uid;
+      allow create: if isAdmin() && request.resource.data.owner == request.auth.uid;
+      allow update: if isAdmin() && resource.data.owner == request.auth.uid && request.resource.data.owner == request.auth.uid;
+      allow delete: if isAdmin() && resource.data.owner == request.auth.uid;
+
+      match /keepers/{uid} {
+        allow read: if signedIn();
+        allow write: if signedIn() && request.auth.uid == uid && live(code) && request.resource.data.f is string;
+      }
+      match /planes/{pid} {
+        allow read: if signedIn();
+        allow create: if isOwner(code) || keeperPlane(code, request.resource.data);
+        allow update: if isOwner(code) || (keeperPlane(code, resource.data) && keeperPlane(code, request.resource.data));
+        allow delete: if isOwner(code) || keeperPlane(code, resource.data);
+      }
+      match /factoryRounds/{id} {
+        allow read: if signedIn();
+        allow write: if isOwner(code) || keeperFR(code, id);
+      }
+    }
+  }
+}

@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#163F45">
+<title>Flight Works Time Keeper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Courier+Prime:wght@400;700&family=Work+Sans:wght@400;500;600;700&family=Yellowtail&display=swap">
+<style>
+/* Phone time card for the factory's Industrial Performance Analyst. */
+:root{
+  --paper:#F1E5CB; --card:#FBF3E1; --ink:#2B221D; --muted:#6F6157; --line:#D8C7A4;
+  --teal:#1E5E66; --teal-deep:#163F45; --red:#C23A2A; --mustard:#DFA53A; --on-dark:#F6EBD3; --ok:#1E5E66;
+  --font-script:"Yellowtail","Brush Script MT",cursive;
+  --font-slab:"Alfa Slab One","Rockwell","Roboto Slab",Georgia,serif;
+  --font-body:"Work Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-card:"Courier Prime","Courier New",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0F2A2E; --card:#163A3F; --ink:#F1E5CB; --muted:#B5A891; --line:#2E5459;
+  --teal:#76B9BE; --teal-deep:#0B2023; --red:#E5634F; --mustard:#EFBD58; --ok:#76B9BE; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0F2A2E; --card:#163A3F; --ink:#F1E5CB; --muted:#B5A891; --line:#2E5459;
+  --teal:#76B9BE; --teal-deep:#0B2023; --red:#E5634F; --mustard:#EFBD58; --ok:#76B9BE; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.4;min-height:100dvh}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--mustard);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+header{position:sticky;top:0;z-index:5;background:var(--teal-deep);color:var(--on-dark);border-bottom:4px solid var(--red);padding:max(10px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.hrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-family:var(--font-script);font-size:1.5rem;line-height:1;color:var(--mustard)}
+.co{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+.fac{font-family:var(--font-slab);font-size:1.05rem;text-align:right}
+.linkbtn{background:none;border:none;color:var(--on-dark);text-decoration:underline;padding:0;font-size:.78rem;cursor:pointer;opacity:.85}
+header .linkbtn{white-space:nowrap}
+@media (max-width:420px){.co{display:none}}
+.clockrow{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-top:8px}
+.rname{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase}
+.rname b{display:block;font-family:var(--font-script);font-weight:400;font-size:1.6rem;letter-spacing:0;text-transform:none;color:var(--mustard);line-height:1.05}
+.dial{font-family:var(--font-card);font-weight:700;font-size:2.4rem;line-height:1;background:#F6EBD3;color:#2B221D;border-radius:8px;padding:5px 12px;text-align:center;min-width:5.6ch}
+.dial small{display:block;font-size:.65rem;font-weight:400;letter-spacing:.08em;color:#6F6157}
+.dial.final{background:var(--red);color:#FBF3E1}
+.dial.final small{color:#FBF3E1}
+main{padding:16px max(16px,env(safe-area-inset-right,0px)) calc(32px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:16px;max-width:620px;margin:0 auto}
+h1,h2,h3{font-family:var(--font-slab);font-weight:400;margin:0;letter-spacing:.01em}
+h1{font-size:1.6rem}
+h2{font-size:1.2rem}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px}
+.note{font-size:.88rem;color:var(--muted);margin:0}
+.status{border-radius:10px;padding:10px 14px;font-weight:600;background:var(--card);border:2px dashed var(--mustard)}
+.status.stop{background:var(--red);border-color:var(--red);color:#FBF3E1}
+.status.run{border-style:solid;border-color:var(--teal)}
+.btn{border:2px solid currentColor;background:transparent;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:700;min-height:44px}
+.btn.solid{background:var(--teal);border-color:var(--teal);color:#FBF3E1}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.solid{color:#0B2023}}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.big{width:100%;min-height:96px;border:none;border-radius:16px;background:var(--red);color:#FBF3E1;font-family:var(--font-slab);font-size:1.7rem;letter-spacing:.02em;cursor:pointer;box-shadow:0 6px 0 #8E2418;transition:transform .05s}
+.big small{display:block;font-family:var(--font-body);font-size:.85rem;font-weight:600;letter-spacing:.04em;opacity:.9}
+.big:active{transform:translateY(3px);box-shadow:0 3px 0 #8E2418}
+.big:disabled{background:var(--line);color:var(--muted);box-shadow:none;cursor:not-allowed}
+input.field{width:100%;border:2px solid var(--line);background:var(--paper);border-radius:8px;padding:12px;font-size:1.1rem}
+input.code{font-family:var(--font-slab);font-size:2.4rem;letter-spacing:.35em;text-align:center;text-transform:uppercase;padding:10px 0 10px .35em}
+.chips{display:grid;gap:10px}
+.chip{border:2px solid var(--teal);background:var(--card);border-radius:12px;padding:16px;font-family:var(--font-slab);font-size:1.25rem;cursor:pointer;text-align:left}
+.plist{display:grid;gap:8px}
+.plane{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;background:var(--card);border:2px solid var(--ink);border-radius:8px;padding:10px}
+.plane .pn{font-family:var(--font-slab);font-size:1.5rem;min-width:2.6ch;text-align:center;background:none;border:none;cursor:pointer;color:var(--ink);padding:4px}
+.plane .meta{font-family:var(--font-card);font-size:.95rem;line-height:1.25}
+.plane .meta b{font-size:1.05rem}
+.plane .acts{display:flex;gap:6px}
+.plane .acts .btn{padding:8px 10px}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#FBF3E1}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.ok{color:#0B2023}}
+.btn.rej{color:var(--red)}
+.btn.star[aria-pressed="true"]{background:var(--mustard);border-color:var(--mustard);color:#2B221D}
+.badge{display:inline-block;background:var(--red);color:#FBF3E1;border-radius:999px;padding:0 8px;font-size:.8rem;font-family:var(--font-body);font-weight:700;margin-left:4px}
+.done .plane{border-style:dashed;opacity:.85}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.stat b{display:block;font-family:var(--font-slab);font-size:1.8rem;font-weight:400}
+.stat span{font-size:.8rem;color:var(--muted)}
+label.lab{display:grid;gap:6px;font-weight:600;font-size:.9rem}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--paper);border-radius:999px;padding:12px 20px;font-weight:700;max-width:calc(100% - 32px);text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+dialog{border:none;border-radius:14px;padding:0;max-width:min(420px,calc(100% - 32px));width:100%;background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(11,32,35,.6)}
+dialog form{padding:18px;display:grid;gap:12px}
+.err{color:var(--red);font-weight:600}
+summary{cursor:pointer;font-weight:700;padding:4px 0}
+.sw{font-family:var(--font-card);font-size:3rem;text-align:center;font-weight:700}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <div><div class="brand">Time Keeper</div><div class="co">Flight Works Ltd. · Performance Office</div></div>
+    <div><div class="fac" id="facName"></div><button class="linkbtn" id="changeFac" type="button" hidden>Change factory</button></div>
+  </div>
+  <div class="clockrow" id="clockRow" hidden>
+    <div class="rname" id="rname"></div>
+    <div class="dial num" id="dial">0:00<small>of 4:00</small></div>
+  </div>
+</header>
+<main id="app"><p class="note">Loading…</p></main>
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+<dialog id="edit"><form method="dialog" id="editForm">
+  <h2 id="editTitle">Plane</h2>
+  <div class="grid2">
+    <label class="lab">Plane #<input class="field num" id="eN" inputmode="numeric"></label>
+    <label class="lab">Times rejected<input class="field num" id="eR" inputmode="numeric"></label>
+    <label class="lab">Started (m:ss)<input class="field num" id="eS" inputmode="decimal" placeholder="0:42"></label>
+    <label class="lab">Done (m:ss)<input class="field num" id="eD" inputmode="decimal" placeholder="empty = on the floor"></label>
+  </div>
+  <p class="err" id="eErr" hidden></p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between">
+    <button class="btn rej" type="button" id="eDel">Remove plane</button>
+    <span style="display:flex;gap:8px"><button class="btn" value="cancel" type="submit" id="eCancel">Cancel</button><button class="btn solid" type="button" id="eSave">Save</button></span>
+  </div>
+</form></dialog>
+
+<script src="firebase-config.js"></script>
+<script type="module">
+import "./js/cloud.js";
+const api = window.JPBCloud;
+const ROUNDS = ["Induction","Maximum Productivity","Continuous Improvement™","Quality Excellence Initiative","Pull","Improve the System"];
+const KEY = "jpb-keeper-v1";
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const mmss = sec => { if (sec == null || !isFinite(sec)) return "–"; sec = Math.max(0, Math.round(sec)); return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0"); };
+function parseT(v) { v = String(v || "").trim(); if (!v) return null; let m = v.match(/^(\d+)[:.,'](\d{1,2})$/); if (m) return (+m[1]) * 60 + (+m[2]); m = v.match(/^(\d+)$/); if (m) { const x = +m[1]; return x >= 100 ? Math.floor(x / 100) * 60 + x % 100 : x; } return NaN; }
+
+let st = { code: null, f: null };
+try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
+const urlCode = api.cleanCode(new URLSearchParams(location.search).get("c"));
+if (urlCode && urlCode !== st.code) { st = { code: urlCode, f: null }; }
+const keep = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+
+let session = null, planes = [], frs = {}, unsub = [], screen = "join", err = "", busy = false, lastRunning = null, wakeLock = null, soloWatch = null;
+
+/* ---------- helpers ---------- */
+const D = () => (session?.durations?.[session.round]) || 240;
+function elapsed() { const c = session?.clock; if (!c) return 0; return Math.max(0, Math.min(D(), (c.elapsed || 0) + (c.running ? (api.now() - c.startedAt) / 1000 : 0))); }
+const myPlanes = () => planes.filter(p => p.rd === session.round).sort((a, b) => ((+a.n || 1e9) - (+b.n || 1e9)) || ((a.s ?? 1e9) - (b.s ?? 1e9)));
+const fr = r => frs[`${st.f}_${r}`] || {};
+const live = () => session && session.status !== "closed";
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 2600); }
+const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+function fail(e) { console.warn(e); toast(e?.code === "permission-denied" ? "Not allowed: this round may be closed. Ask the facilitator." : "Couldn't save. Check your connection."); }
+async function keepAwake() { try { if ("wakeLock" in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => wakeLock = null); } } catch (e) {} }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && screen === "main") keepAwake(); });
+
+/* ---------- joining ---------- */
+function stopWatching() { unsub.forEach(u => { try { u(); } catch (e) {} }); unsub = []; }
+async function join(code) {
+  code = api.cleanCode(code); err = "";
+  if (code.length !== 4) { err = "The code has 4 letters."; draw(); return; }
+  busy = true; draw();
+  try {
+    await api.signInKeeper();
+    const snap = await api.getSession(code);
+    if (!snap.exists()) { err = "No session with that code. Check the projector."; busy = false; draw(); return; }
+    if (snap.get("status") === "closed") { err = "That session is closed."; busy = false; draw(); return; }
+    st.code = code; keep();
+    session = snap.data();
+    watch();
+    screen = st.f == null || !(session.factories || [])[st.f] ? "factory" : "main";
+    if (screen === "main") await api.joinFactory(st.code, st.f).catch(fail);
+  } catch (e) { console.warn(e); err = "Couldn't connect. Check the Wi-Fi and try again."; }
+  busy = false; draw();
+}
+function watch() {
+  stopWatching();
+  unsub.push(api.watchSession(st.code, d => { if (!d) { leave("The session was removed."); return; } session = d; draw(); }, e => console.warn(e)));
+  watchMine();
+}
+function watchMine() {
+  if (unsub.length > 1) { unsub.slice(1).forEach(u => u()); unsub = unsub.slice(0, 1); }
+  if (st.f == null) return;
+  unsub.push(api.watchPlanes(st.code, +st.f, list => { planes = list; draw(); }, e => console.warn(e)));
+  unsub.push(api.watchFactoryRounds(st.code, list => { frs = {}; list.forEach(d => frs[d.id] = d); draw(); }, e => console.warn(e)));
+}
+async function pickFactory(i) {
+  st.f = i; keep(); screen = "main"; planes = []; frs = {};
+  watchMine(); keepAwake(); draw();
+  try { await api.joinFactory(st.code, i); } catch (e) { fail(e); }
+}
+function leave(msg) { stopWatching(); session = null; st = { code: null, f: null }; keep(); screen = "join"; err = msg || ""; draw(); }
+
+/* ---------- actions ---------- */
+async function started() {
+  if (!canStamp()) return;
+  const t = Math.round(elapsed()), mine = myPlanes();
+  const n = mine.reduce((m, p) => Math.max(m, +p.n || 0), 0) + 1;
+  const id = api.newPlaneId(st.code);
+  buzz(30);
+  toast(`Plane #${n} started at ${mmss(t)}`);
+  api.setPlane(st.code, id, { f: +st.f, rd: session.round, n, s: t, d: null, rej: 0, x: false, by: api.user?.uid || null }).catch(fail);
+}
+function done(p) { if (!canStamp()) return; const t = Math.round(elapsed()); buzz(20); toast(`Plane #${p.n} done at ${mmss(t)}`); api.updatePlane(st.code, p.id, { d: t }).catch(fail); }
+function rejected(p) { buzz([20, 60, 20]); toast(`Plane #${p.n} sent back`); api.updatePlane(st.code, p.id, { rej: (p.rej || 0) + 1 }).catch(fail); }
+function undoDone(p) { api.updatePlane(st.code, p.id, { d: null }).catch(fail); }
+function star(p) { api.updatePlane(st.code, p.id, { x: !p.x }).catch(fail); }
+function setFR(r, fields) { api.setFactoryRound(st.code, +st.f, r, fields).then(() => toast("Saved"), fail); }
+function canStamp() { const c = session?.clock; return live() && session.round >= 1 && c && (c.running || (c.elapsed > 0)) && elapsed() < D(); }
+
+/* ---------- edit dialog ---------- */
+let editing = null;
+function openEdit(p) {
+  editing = p; $("#editTitle").textContent = `Plane #${p.n ?? ""}`;
+  $("#eN").value = p.n ?? ""; $("#eR").value = p.rej || 0; $("#eS").value = p.s == null ? "" : mmss(p.s); $("#eD").value = p.d == null ? "" : mmss(p.d);
+  $("#eErr").hidden = true; $("#edit").showModal();
+}
+$("#eSave").addEventListener("click", () => {
+  const s = parseT($("#eS").value), d = parseT($("#eD").value);
+  if (Number.isNaN(s) || Number.isNaN(d) || s == null) { $("#eErr").textContent = "Write times as m:ss, for example 1:05. Started can't be empty."; $("#eErr").hidden = false; return; }
+  if (d != null && d < s) { $("#eErr").textContent = "Done can't be before Started."; $("#eErr").hidden = false; return; }
+  const n = $("#eN").value.trim();
+  api.updatePlane(st.code, editing.id, { n: n === "" ? null : (isNaN(+n) ? n : +n), s, d, rej: Math.max(0, parseInt($("#eR").value) || 0) }).catch(fail);
+  $("#edit").close();
+});
+$("#eDel").addEventListener("click", () => { if (confirm(`Remove plane #${editing.n}?`)) { api.deletePlane(st.code, editing.id).catch(fail); $("#edit").close(); } });
+
+/* ---------- drawing ---------- */
+function header() {
+  const inMain = screen === "main" && session;
+  $("#facName").textContent = inMain ? (session.factories[st.f] || "") : "";
+  $("#changeFac").hidden = !inMain;
+  $("#clockRow").hidden = !inMain;
+  if (inMain) $("#rname").innerHTML = `Round ${session.round}<b>${esc(ROUNDS[session.round] || "")}</b>`;
+}
+function tick() {
+  if (screen !== "main" || !session) return;
+  const e = elapsed(), d = D(), run = !!session.clock?.running, left = d - e;
+  const dial = $("#dial"); dial.innerHTML = `${mmss(Math.floor(e))}<small>of ${mmss(d)}</small>`;
+  dial.classList.toggle("final", run && left <= 10);
+  if (lastRunning !== null && lastRunning && !run && e >= d - 0.01) { buzz([300, 100, 300]); draw(); }
+  else if (lastRunning !== null && run !== lastRunning) draw();
+  lastRunning = run;
+  document.querySelectorAll("[data-age]").forEach(el => el.textContent = mmss(e - (+el.dataset.age)));
+  const sb = $("#startBtn"); if (sb) { const ok = canStamp(); if (sb.disabled === ok) draw(); }
+  if (soloWatch && soloWatch.running) { const sw = $("#swTime"); if (sw) sw.textContent = mmss((Date.now() - soloWatch.t0) / 1000); }
+}
+setInterval(tick, 250);
+
+function statusLine() {
+  const c = session.clock || {}, e = elapsed(), d = D();
+  if (!live()) return `<div class="status stop">This session is closed.</div>`;
+  if (e >= d) return `<div class="status stop">STOP. Hands off the planes. Fix any mistakes below, then wait for the next round.</div>`;
+  if (c.running) return `<div class="status run">The round is running. Tap as planes start and finish.</div>`;
+  if (e > 0) return `<div class="status">Paused.</div>`;
+  return `<div class="status">Waiting for the facilitator to start the clock.</div>`;
+}
+function planeRow(p, open) {
+  const e = elapsed();
+  const meta = open
+    ? `<b>Started ${mmss(p.s)}</b>${p.rej ? `<span class="badge">↩ ${p.rej}</span>` : ""}<br>on the floor <span data-age="${p.s}">${mmss(e - p.s)}</span>`
+    : `${mmss(p.s)} → <b>${mmss(p.d)}</b>${p.rej ? `<span class="badge">↩ ${p.rej}</span>` : ""}<br>build time ${mmss(p.d - p.s)}`;
+  const acts = open
+    ? `${session.round === 5 ? `<button class="btn star" type="button" data-star="${p.id}" aria-pressed="${!!p.x}" aria-label="Chairman's jet">★</button>` : ""}${session.round >= 3 ? `<button class="btn rej" type="button" data-rej="${p.id}">Rejected</button>` : ""}<button class="btn ok" type="button" data-done="${p.id}" ${canStamp() ? "" : "disabled"}>Done</button>`
+    : `${p.x ? "★ " : ""}<button class="btn" type="button" data-undo="${p.id}">Undo</button>`;
+  return `<div class="plane"><button class="pn" type="button" data-edit="${p.id}" aria-label="Edit plane ${esc(p.n)}">${esc(p.n ?? "?")}</button><div class="meta">${meta}</div><div class="acts">${acts}</div></div>`;
+}
+function vMain() {
+  const r = session.round, d = D(), e = elapsed();
+  let h = statusLine();
+  if (r === 0) {
+    const solo = fr(0).solo;
+    h += `<div class="panel"><h2>Solo flight</h2><p class="note">One plane through all four stations with nothing else going on. Start the stopwatch when Station 1 starts, stop it when the plane is finished.</p>
+      <div class="sw num" id="swTime">${soloWatch ? mmss(soloWatch.running ? (Date.now() - soloWatch.t0) / 1000 : soloWatch.sec) : (solo != null ? mmss(solo) : "0:00")}</div>
+      <button class="big" type="button" id="swBtn">${soloWatch && soloWatch.running ? "Stop" : "Start the stopwatch"}</button>
+      <label class="lab">Or type it (m:ss)<input class="field num" id="soloIn" inputmode="decimal" value="${solo != null ? mmss(solo) : ""}" placeholder="0:45"></label>
+      <button class="btn solid" type="button" id="soloSave">Save solo flight</button>
+      ${solo != null ? `<p class="note">Saved: ${mmss(solo)}</p>` : ""}</div>`;
+    return h;
+  }
+  if (r === 3) {
+    h += `<div class="panel"><h2>Audit</h2><p class="note">The Group Director checks 5 of your finished planes from Rounds 1 and 2. Enter how many failed.</p>
+      <div class="grid2"><label class="lab">Round 1: failed of 5<input class="field num" id="aud1" type="number" min="0" max="5" inputmode="numeric" value="${fr(1).audit ?? ""}"></label>
+      <label class="lab">Round 2: failed of 5<input class="field num" id="aud2" type="number" min="0" max="5" inputmode="numeric" value="${fr(2).audit ?? ""}"></label></div></div>`;
+  }
+  if (r === 5) {
+    h += `<div class="panel"><h2>Forecast</h2><label class="lab">How many accepted planes will you deliver this round?<input class="field num" id="fc" type="number" min="0" inputmode="numeric" value="${fr(5).forecast ?? ""}"></label></div>`;
+  }
+  const mine = myPlanes(), open = mine.filter(p => p.d == null), fin = mine.filter(p => p.d != null);
+  const nextN = mine.reduce((m, p) => Math.max(m, +p.n || 0), 0) + 1;
+  h += `<button class="big" type="button" id="startBtn" ${canStamp() ? "" : "disabled"}>Plane started<small>next is #${nextN}</small></button>`;
+  if (e >= d && mine.length) h += `<div class="grid2"><div class="stat"><b>${fin.length}</b><span>finished</span></div><div class="stat"><b>${open.length}</b><span>still on the floor</span></div></div>`;
+  h += `<div class="panel"><h2>On the floor (${open.length})</h2>${open.length ? `<div class="plist">${open.map(p => planeRow(p, true)).join("")}</div>` : `<p class="note">No planes in progress.</p>`}
+    <p class="note">Tap a plane number to fix its times.</p></div>`;
+  h += `<details class="panel done" ${fin.length && e >= d ? "open" : ""}><summary>Finished (${fin.length})</summary><div class="plist">${fin.slice().reverse().map(p => planeRow(p, false)).join("")}</div></details>`;
+  return h;
+}
+function draw() {
+  header();
+  const app = $("#app");
+  if (!api.available) { app.innerHTML = `<div class="panel"><h1>Not set up yet</h1><p>Online sessions aren't configured for this dashboard. Ask the facilitator.</p></div>`; return; }
+  if (screen === "join") {
+    app.innerHTML = `<div class="panel"><h1>Report for duty</h1><p>Type the 4-letter code shown on the projector.</p>
+      <input class="field code" id="codeIn" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${esc(st.code || "")}" aria-label="Session code">
+      ${err ? `<p class="err">${esc(err)}</p>` : ""}
+      <button class="big" type="button" id="joinBtn" ${busy ? "disabled" : ""}>${busy ? "Connecting…" : "Join"}</button></div>`;
+    return;
+  }
+  if (!session) { app.innerHTML = `<p class="note">Connecting…</p>`; return; }
+  if (screen === "factory") {
+    app.innerHTML = `<div class="panel"><h1>Which factory are you timing?</h1><p class="note">Session ${esc(st.code)} · ${esc(session.name || "")}</p>
+      <div class="chips">${session.factories.map((f, i) => `<button class="chip" type="button" data-fac="${i}">${esc(f)}</button>`).join("")}</div>
+      <button class="linkbtn" style="color:var(--ink)" type="button" id="leaveBtn">Use a different code</button></div>`;
+    return;
+  }
+  const a = document.activeElement, keepId = a && a.id && a.tagName === "INPUT" ? a.id : null, val = keepId ? a.value : null;
+  if (keepId) return; // don't redraw under someone typing
+  app.innerHTML = vMain();
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return; const d = b.dataset;
+  const byId = id => planes.find(p => p.id === id);
+  if (b.id === "joinBtn") { join($("#codeIn").value); keepAwake(); return; }
+  if (b.id === "leaveBtn") { leave(); return; }
+  if (b.id === "changeFac") { screen = "factory"; draw(); return; }
+  if (d.fac != null) { pickFactory(+d.fac); return; }
+  if (b.id === "startBtn") { started(); return; }
+  if (d.done) { const p = byId(d.done); p && done(p); return; }
+  if (d.rej) { const p = byId(d.rej); p && rejected(p); return; }
+  if (d.undo) { const p = byId(d.undo); p && undoDone(p); return; }
+  if (d.star) { const p = byId(d.star); p && star(p); return; }
+  if (d.edit) { const p = byId(d.edit); p && openEdit(p); return; }
+  if (b.id === "swBtn") {
+    if (soloWatch && soloWatch.running) { soloWatch.running = false; soloWatch.sec = Math.round((Date.now() - soloWatch.t0) / 1000); setFR(0, { solo: soloWatch.sec }); }
+    else soloWatch = { running: true, t0: Date.now(), sec: 0 };
+    draw(); return;
+  }
+  if (b.id === "soloSave") { const v = parseT($("#soloIn").value); if (v == null || Number.isNaN(v)) { toast("Write it as m:ss, for example 0:45"); return; } soloWatch = null; setFR(0, { solo: v }); $("#soloIn").blur(); return; }
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.id === "aud1" || t.id === "aud2") { const v = t.value === "" ? null : Math.max(0, Math.min(5, +t.value)); setFR(t.id === "aud1" ? 1 : 2, { audit: v }); }
+  if (t.id === "fc") setFR(5, { forecast: t.value === "" ? null : Math.max(0, +t.value) });
+});
+document.addEventListener("focusout", () => setTimeout(() => { const a = document.activeElement; if (!(a && a.tagName === "INPUT")) draw(); }, 0));
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "codeIn") { e.preventDefault(); join(e.target.value); } });
+document.addEventListener("input", e => { if (e.target.id === "codeIn") { const v = api.cleanCode(e.target.value); if (v !== e.target.value) e.target.value = v; } });
+
+/* ---------- start ---------- */
+if (st.code && api.available) join(st.code); else draw();
+</script>
+</body>
+</html>
